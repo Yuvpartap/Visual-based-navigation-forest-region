@@ -1,6 +1,7 @@
 import os
 import sys
-from src.create_trajectory_map import generate_trajectory_map, generate_trajectory_map_from_crops
+import cv2
+from src.create_trajectory_map import generate_trajectory_map, generate_trajectory_map_from_crops, generate_dynamic_tile_matching
 from src.create_video import create_trajectory_video
 from src.video_utils import get_video_info
 
@@ -17,13 +18,54 @@ def main():
     output_video_path = os.path.join(results_dir, "trajectory_video.avi")
 
     #check if we should use video input or crop directory
-    input_video_path = r"C:\Binomial Technologies\Non GPS based Navigation\Earth_Studio\Munnar_videos\Munnar Hills_nadir_1.mp4"
+    input_video_path = r"C:\Binomial Technologies\Non GPS based Navigation\Earth_Studio\Ajabgarh_videos\ajabgarh.mp4"
     crops_dir = "data/crops"
+    # optional tile configuration
+    tiles_dir = r"C:\Binomial Technologies\Non GPS based Navigation\NGBN\Satellite Dataset\ajabgarh_z18Tiles_gmap"  # directory with <x>_<y>.png tiles at zoom 19
+    initial_tile_x = 186625
+    initial_tile_y = 110502
+    grid_size = int(os.environ.get("GRID_SIZE", "3"))
     
     coords = None
     
-    #prioritize video input if available
-    if os.path.exists(input_video_path):
+    #prioritize tile-based matching if configured and video available
+    if os.path.exists(input_video_path) and tiles_dir and initial_tile_x and initial_tile_y:
+        print("Found video and tiles, running dynamic tile-based matching...")
+        video_info = get_video_info(input_video_path)
+        if video_info:
+            frame_skip = max(1, int(video_info['fps'] / 2))
+            print(f"Using frame skip: {frame_skip}")
+        else:
+            frame_skip = 5
+        coords, frame_paths = generate_dynamic_tile_matching(
+            tiles_dir=tiles_dir,
+            initial_tile_x=int(initial_tile_x),
+            initial_tile_y=int(initial_tile_y),
+            video_path=input_video_path,
+            grid_size=grid_size,
+            frame_skip=frame_skip,
+            ext=".png",
+            tile_cache_items=1024,
+            min_good_matches=10,
+        )
+        # note: tile centers are returned; trajectory video will still draw over the global map if provided
+        print(f"Computed {len(coords)} dynamic tile centers")
+        # build trajectory video from saved trajectory frames
+        if frame_paths:
+            # read dimensions from first frame
+            first = cv2.imread(frame_paths[0], cv2.IMREAD_COLOR)
+            if first is not None:   
+                height, width = first.shape[:2]
+                fourcc = cv2.VideoWriter_fourcc(*'XVID')
+                video_writer = cv2.VideoWriter(output_video_path, fourcc, 4, (width, height))
+                for p in frame_paths:
+                    img = cv2.imread(p, cv2.IMREAD_COLOR)
+                    if img is not None:
+                        video_writer.write(img)
+                video_writer.release()
+                print(f"Trajectory video saved to {output_video_path}")
+    #fallback: video matching against global map image
+    elif os.path.exists(input_video_path):
         print("Found video input, processing video...")
         
         #get video info
