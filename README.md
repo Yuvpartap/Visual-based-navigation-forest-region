@@ -9,15 +9,22 @@ The dataset comprises:
 - **Drone Frames**: 50 consecutive photos captured during the UAV flight.
 
 ## 🔄 Workflow
+
+### Input Options
+The system now supports two input methods:
+1. **Video Input** (Recommended): Direct processing of drone video files
+2. **Crop Images**: Individual frame images (original method)
+
 ### 1. Trajectory Map Generation
-- **Keypoint Detection**: Implement the SIFT algorithm to identify unique features in both frames and the satellite map.
-- **Matching**: Establish correspondences between drone frames and the global map through feature matching.
-- **Homography Calculation**: Compute transformation matrices to position frames accurately on the map.
-- **Trajectory Visualization**: Illustrate the drone's flight path on the map.
+- **Video Processing**: Extract frames from drone video automatically
+- **Keypoint Detection**: Implement the SIFT algorithm to identify unique features in frames and the satellite map
+- **Matching**: Establish correspondences between drone frames and the global map through feature matching
+- **Homography Calculation**: Compute transformation matrices to position frames accurately on the map
+- **Trajectory Visualization**: Illustrate the drone's flight path on the map
 
 ### 2. Video Generation
-- Develop a dynamic video displaying the UAV’s movement in real-time.
-- Highlight the drone's current position, the trajectory line, and the start/end points.
+- Develop a dynamic video displaying the UAV's movement in real-time
+- Highlight the drone's current position, the trajectory line, and the start/end points
 
 ## Results
 - **Static Map**: Provides a comprehensive visual representation of the flight path, indicating key points and the trajectory.

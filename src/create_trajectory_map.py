@@ -7,8 +7,12 @@ import numpy as np
 def numerical_sort(value):
     return int(re.sub(r'\D', '', value))
 
-#main function to generate the trajectory map
-def generate_trajectory_map(map_path, frames_dir, output_path):
+#backward compatibility function for crop directory processing
+def generate_trajectory_map_from_crops(map_path, frames_dir, output_path):
+    """
+    Generate trajectory map from crop directory (original functionality).
+    Maintained for backward compatibility.
+    """
     #load the global map image
     map_img = cv2.imread(map_path, cv2.IMREAD_COLOR)
 
@@ -59,8 +63,18 @@ def generate_trajectory_map(map_path, frames_dir, output_path):
                 cy = int(sum(pt[0][1] for pt in transformed) / 4)
                 center_coords.append((cx, cy))
 
-    #draw trajectory
+    #draw trajectory and save
+    trajectory_img = _draw_trajectory_on_map(map_img, center_coords)
+    cv2.imwrite(output_path, trajectory_img)
+    return center_coords
+
+def _draw_trajectory_on_map(map_img, center_coords):
+    """
+    Helper function to draw trajectory on map image.
+    """
     trajectory_img = map_img.copy()
+    
+    #draw trajectory lines and points
     for i in range(1, len(center_coords)):
         cv2.line(trajectory_img, center_coords[i - 1], center_coords[i], (255, 0, 0), 3)
         cv2.circle(trajectory_img, center_coords[i - 1], 5, (0, 255, 0), -1)
@@ -74,7 +88,89 @@ def generate_trajectory_map(map_path, frames_dir, output_path):
         cv2.circle(trajectory_img, center_coords[-1], 8, (0, 0, 255), -1)
         cv2.putText(trajectory_img, "END", (center_coords[-1][0] + 10, center_coords[-1][1] - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+    
+    return trajectory_img
 
-    #save the resulting image
+#main function to generate the trajectory map from video input
+def generate_trajectory_map(map_path, video_path, output_path, frame_skip=1):
+    #load the global map image
+    map_img = cv2.imread(map_path, cv2.IMREAD_COLOR)
+
+    #initialize SIFT feature detector and BFMatcher
+    sift = cv2.SIFT_create()
+    bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=False)
+
+    #detect keypoints and descriptors in the global map
+    kp_map, des_map = sift.detectAndCompute(map_img, None)
+
+    center_coords = []
+
+    #open video file
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        print(f"Error: Could not open video file {video_path}")
+        return center_coords
+
+    #get video properties
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    print(f"Video info: {total_frames} frames, {fps:.2f} FPS")
+
+    frame_count = 0
+    processed_frames = 0
+
+    #process video frames
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        #skip frames based on frame_skip parameter
+        if frame_count % frame_skip != 0:
+            frame_count += 1
+            continue
+
+        #show progress
+        processed_frames += 1
+        print(f"Processing frame {frame_count + 1}/{total_frames} (processed: {processed_frames})")
+
+        #convert frame to grayscale for feature detection
+        frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        #detect keypoints and descriptors
+        kp_frame, des_frame = sift.detectAndCompute(frame_gray, None)
+        if des_frame is None or len(kp_frame) < 4:
+            frame_count += 1
+            continue
+
+        #use KNN matching to find good matches
+        matches = bf.knnMatch(des_frame, des_map, k=2)
+        good_matches = [m for m, n in matches if m.distance < 0.75 * n.distance]
+
+        #proceed only if enough good matches are found
+        if len(good_matches) > 10:
+            src_pts = np.float32([kp_frame[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
+            dst_pts = np.float32([kp_map[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
+
+            #estimate homography matrix
+            H, _ = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
+            if H is not None:
+                h, w = frame_gray.shape
+                corners = np.float32([[0, 0], [0, h], [w, h], [w, 0]]).reshape(-1, 1, 2)
+                transformed = cv2.perspectiveTransform(corners, H)
+
+                #calculate the center point
+                cx = int(sum(pt[0][0] for pt in transformed) / 4)
+                cy = int(sum(pt[0][1] for pt in transformed) / 4)
+                center_coords.append((cx, cy))
+
+        frame_count += 1
+
+    #release video capture
+    cap.release()
+    print(f"Processed {processed_frames} frames, found {len(center_coords)} valid positions")
+
+    #draw trajectory and save
+    trajectory_img = _draw_trajectory_on_map(map_img, center_coords)
     cv2.imwrite(output_path, trajectory_img)
     return center_coords
