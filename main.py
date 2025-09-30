@@ -1,8 +1,6 @@
 import os
 import sys
-import cv2
 from src.create_trajectory_map import generate_trajectory_map, generate_trajectory_map_from_crops, generate_dynamic_tile_matching
-from src.create_video import create_trajectory_video
 from src.video_utils import get_video_info
 
 def main():
@@ -18,13 +16,13 @@ def main():
     output_video_path = os.path.join(results_dir, "trajectory_video.avi")
 
     #check if we should use video input or crop directory
-    input_video_path = r"C:\Binomial Technologies\Non GPS based Navigation\Earth_Studio\Ajabgarh_videos\ajabgarh.mp4"
+    input_video_path = r"C:\Binomial Technologies\Non GPS based Navigation\Earth_Studio\Ajabgarh_videos\Ajabgarh_right.mp4"
     crops_dir = "data/crops"
     # optional tile configuration
-    tiles_dir = r"C:\Binomial Technologies\Non GPS based Navigation\NGBN\Satellite Dataset\ajabgarh_z18Tiles_gmap"  # directory with <x>_<y>.png tiles at zoom 19
-    initial_tile_x = 186625
-    initial_tile_y = 110502
-    grid_size = int(os.environ.get("GRID_SIZE", "3"))
+    tiles_dir = r"C:\Binomial Technologies\Non GPS based Navigation\NGBN\Satellite Dataset\ajabgarh_z18Tiles_gmap" #os.environ.get("TILES_DIR", None)  # directory with <x>_<y>.png tiles at zoom 19
+    initial_tile_x = 186625#os.environ.get("INITIAL_TILE_X", None)
+    initial_tile_y = 110502#os.environ.get("INITIAL_TILE_Y", None)
+    grid_size = 9 #int(os.environ.get("GRID_SIZE", "3"))
     
     coords = None
     
@@ -37,7 +35,7 @@ def main():
             print(f"Using frame skip: {frame_skip}")
         else:
             frame_skip = 5
-        coords, frame_paths = generate_dynamic_tile_matching(
+        coords = generate_dynamic_tile_matching(
             tiles_dir=tiles_dir,
             initial_tile_x=int(initial_tile_x),
             initial_tile_y=int(initial_tile_y),
@@ -50,20 +48,6 @@ def main():
         )
         # note: tile centers are returned; trajectory video will still draw over the global map if provided
         print(f"Computed {len(coords)} dynamic tile centers")
-        # build trajectory video from saved trajectory frames
-        if frame_paths:
-            # read dimensions from first frame
-            first = cv2.imread(frame_paths[0], cv2.IMREAD_COLOR)
-            if first is not None:   
-                height, width = first.shape[:2]
-                fourcc = cv2.VideoWriter_fourcc(*'XVID')
-                video_writer = cv2.VideoWriter(output_video_path, fourcc, 4, (width, height))
-                for p in frame_paths:
-                    img = cv2.imread(p, cv2.IMREAD_COLOR)
-                    if img is not None:
-                        video_writer.write(img)
-                video_writer.release()
-                print(f"Trajectory video saved to {output_video_path}")
     #fallback: video matching against global map image
     elif os.path.exists(input_video_path):
         print("Found video input, processing video...")
@@ -97,9 +81,6 @@ def main():
     #create a video based on trajectory coordinates
     if coords:
         print(f"Found {len(coords)} trajectory points")
-        print("Creating trajectory visualization video")
-        create_trajectory_video(map_path, coords, output_video_path, fps=4)
-        print(f"Trajectory video saved to {output_video_path}")
     else:
         print("No coordinates found, trajectory video not created")
 
