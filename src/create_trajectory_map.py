@@ -11,6 +11,7 @@ from src.tile_loading_utilis import (
     load_and_stitch_rect,
 )
 from src.superpoint_lightglue_matcher import SuperPointLightGlueMatcher, create_matcher
+from src.dino_loftr_matcher import DinoLoFTRMatcher, create_dino_loftr_matcher
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -566,7 +567,7 @@ def generate_dynamic_tile_matching(
         max_x=max_x,
         min_y=min_y,
         max_y=max_y,
-        z=19,
+        z=18,
         ext=ext,
         cache=cache,
     )

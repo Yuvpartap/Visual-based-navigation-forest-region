@@ -16,12 +16,12 @@ def main():
     output_video_path = os.path.join(results_dir, "trajectory_video.avi")
 
     #check if we should use video input or crop directory
-    input_video_path = r"C:\Binomial Technologies\Non GPS based Navigation\Earth_Studio\Ajabgarh_videos\Ajabgarh_right.mp4"
+    input_video_path = r"C:\Binomial Technologies\Non GPS based Navigation\Earth_Studio\Munnar_videos\Munnar Hills_nadir_1.mp4"
     crops_dir = "data/crops"
     # optional tile configuration
-    tiles_dir = r"C:\Binomial Technologies\Non GPS based Navigation\NGBN\Satellite Dataset\ajabgarh_z18Tiles_gmap" #os.environ.get("TILES_DIR", None)  # directory with <x>_<y>.png tiles at zoom 19
-    initial_tile_x = 186625#os.environ.get("INITIAL_TILE_X", None)
-    initial_tile_y = 110502#os.environ.get("INITIAL_TILE_Y", None)
+    tiles_dir = r"C:\Binomial Technologies\Non GPS based Navigation\NGBN\Satellite Dataset\munnar_z19Tiles_gmap" #os.environ.get("TILES_DIR", None)  # directory with <x>_<y>.png tiles at zoom 19
+    initial_tile_x = 374279#os.environ.get("INITIAL_TILE_X", None)
+    initial_tile_y = 247460#os.environ.get("INITIAL_TILE_Y", None)
     grid_size = 9 #int(os.environ.get("GRID_SIZE", "3"))
     
     coords = None

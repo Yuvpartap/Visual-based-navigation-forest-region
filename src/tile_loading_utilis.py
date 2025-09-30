@@ -136,7 +136,7 @@ def load_and_stitch_rect(
     max_x: int,
     min_y: int,
     max_y: int,
-    z: int = 19,
+    z: int = 18,
     ext: str = ".png",
     cache: Optional[TileCache] = None,
 ) -> Optional[np.ndarray]:
