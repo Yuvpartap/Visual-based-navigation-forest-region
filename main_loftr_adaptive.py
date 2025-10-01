@@ -108,7 +108,7 @@ def generate_dynamic_tile_matching_adaptive(
     if adaptive_resize:
         resize_max = calculate_adaptive_resize(grid_size, tile_size=512, target_scale_ratio=2.0)
     else:
-        resize_max = 840
+        resize_max = 1080
     
     # Adjust RANSAC threshold based on grid size
     # Larger grids need more lenient thresholds due to scale differences
@@ -271,7 +271,7 @@ def main():
     initial_tile_y = 110502
     
     # Grid size - now works with larger values!
-    grid_size = int(os.environ.get("GRID_SIZE", "7"))  # Try 5, 7, or 9
+    grid_size = int(os.environ.get("GRID_SIZE", "9"))  # Try 5, 7, or 9
     
     if not os.path.exists(input_video_path):
         logger.error(f"Video file not found: {input_video_path}")
@@ -312,7 +312,7 @@ def main():
         tile_cache_items=1024,
         min_good_matches=20,
         save_dir=results_dir,
-        adaptive_resize=True,  # Enable adaptive resize
+        adaptive_resize=False,  # Enable adaptive resize
     )
     
     logger.info("=" * 60)
