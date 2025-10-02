@@ -7,7 +7,7 @@ Reconstruct and visualize a UAV/drone trajectory by matching drone frames (from 
 
 Domain highlights: computer vision, deep learning-based feature matching (SuperPoint + LightGlue), homography estimation, map/tile stitching, GPU acceleration, and OpenCV-based visualization/video encoding.
 
-## 2. Project Structure
+## 2. Project Structure --need to update as latest approach uses Optimised and Adaptive Dino-LoFTR model
 - main.py
   - Orchestrates the pipeline. Chooses between three modes:
     1) Dynamic tile-based matching from a video
