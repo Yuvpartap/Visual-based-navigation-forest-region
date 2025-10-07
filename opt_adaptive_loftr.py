@@ -159,7 +159,7 @@ class JetsonOptimizedLoFTRMatcher:
             self.clear_gpu_memory()
 
 
-def calculate_adaptive_resize(grid_size, tile_size=256, target_scale_ratio=2.0):
+def calculate_adaptive_resize(grid_size, tile_size=256, target_scale_ratio=2.00):
     """
     Calculate optimal resize_max based on grid size.
     ORIGINAL VERSION - target_scale_ratio=2.0 for best accuracy.
@@ -175,6 +175,7 @@ def calculate_adaptive_resize(grid_size, tile_size=256, target_scale_ratio=2.0):
 
 
 def generate_dynamic_tile_matching_jetson(
+    zoom,
     tiles_dir,
     initial_tile_x,
     initial_tile_y,
@@ -287,6 +288,7 @@ def generate_dynamic_tile_matching_jetson(
         # Load tiles
         tile_start = time.time()
         stitched = load_and_stitch_grid(
+            zoom,
             tiles_dir=tiles_dir,
             center_x=center_x,
             center_y=center_y,
@@ -399,12 +401,12 @@ def generate_dynamic_tile_matching_jetson(
         
         try:
             full = load_and_stitch_rect(
+                zoom,
                 tiles_dir=tiles_dir,
                 min_x=min_x,
                 max_x=max_x,
                 min_y=min_y,
                 max_y=max_y,
-                z=19,
                 ext=ext,
                 cache=cache,
             )
@@ -451,16 +453,14 @@ def generate_dynamic_tile_matching_jetson(
 
 
 def main():
-    results_dir = "results"
+    results_dir = "results_france_z19g7osm_vid-rotated"
     os.makedirs(results_dir, exist_ok=True)
-
-    input_video_path = r"/home/jetson/Desktop/V5_Data/Videos/France_videos/France_nadir_0d_mainRd.mp4"
+    input_video_path = r"/home/jetson/Desktop/V5_Data/Videos/France_videos/France_rot.mp4"
     tiles_dir = r"/home/jetson/Desktop/V5_Data/Dataset/france_z19Tiles_osm"
-    initial_tile_x = 372408
-    initial_tile_y = 221428
-    
-    # Perfect balance parameters
-    grid_size = 5
+    initial_tile_x = 265389 
+    initial_tile_y = 180405
+    zoom = 19
+    grid_size = 7
     
     if not os.path.exists(input_video_path):
         logger.error(f"Video file not found: {input_video_path}")
@@ -482,6 +482,7 @@ def main():
     start_time = time.time()
     
     centers, _ = generate_dynamic_tile_matching_jetson(
+        zoom,
         tiles_dir=tiles_dir,
         initial_tile_x=initial_tile_x,
         initial_tile_y=initial_tile_y,
@@ -494,7 +495,7 @@ def main():
         save_dir=results_dir,
         adaptive_resize=True,         # Original algorithm
         cleanup_interval=8,           # Every 8 frames
-        save_every_nth=3,             # Save every 3rd matched frame
+        save_every_nth=1,             # Save every 3rd matched frame
     )
     
     total_time = time.time() - start_time

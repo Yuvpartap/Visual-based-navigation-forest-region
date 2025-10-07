@@ -97,11 +97,11 @@ def stitch_grid(tiles: Dict[Tuple[int, int], np.ndarray], xs: List[int], ys: Lis
 
 
 def load_and_stitch_grid(
+    z: int,
     tiles_dir: str,
     center_x: int,
     center_y: int,
-    z: int = 19,
-    grid_size: int = 5,
+    grid_size: int = 9,
     ext: str = ".png",
     cache: Optional[TileCache] = None,
 ) -> Optional[np.ndarray]:
@@ -131,12 +131,12 @@ def load_and_stitch_grid(
 
 
 def load_and_stitch_rect(
+    z: int,
     tiles_dir: str,
     min_x: int,
     max_x: int,
     min_y: int,
     max_y: int,
-    z: int,
     ext: str = ".png",
     cache: Optional[TileCache] = None,
 ) -> Optional[np.ndarray]:
