@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def diagnose_grid_size(tiles_dir, center_x, center_y, grid_sizes=[3, 5, 7, 9], ext=".png"):
+def diagnose_grid_size(zoom, tiles_dir, center_x, center_y, grid_sizes=[3, 5, 7, 9], ext=".png"):
     """
     Analyze different grid sizes and their impact on matching.
     
@@ -47,6 +47,7 @@ def diagnose_grid_size(tiles_dir, center_x, center_y, grid_sizes=[3, 5, 7, 9], e
         
         # Load and stitch
         stitched = load_and_stitch_grid(
+            zoom,
             tiles_dir=tiles_dir,
             center_x=center_x,
             center_y=center_y,
@@ -185,6 +186,7 @@ if __name__ == "__main__":
     tiles_dir = r"C:\Binomial Technologies\Non GPS based Navigation\NGBN\Satellite Dataset\ajabgarh_z18Tiles_gmap"
     center_x = 186625
     center_y = 110502
+    zoom = 18
     
     # Allow command-line override
     if len(sys.argv) > 1:
@@ -198,7 +200,7 @@ if __name__ == "__main__":
         logger.error("Usage: python diagnose_grid_size.py [tiles_dir] [center_x] [center_y]")
         sys.exit(1)
     
-    diagnose_grid_size(tiles_dir, center_x, center_y, grid_sizes=[3, 5, 7, 9])
+    diagnose_grid_size(zoom, tiles_dir, center_x, center_y, grid_sizes=[3, 5, 7, 9])
     
     logger.info("\n✓ Diagnostic complete!")
     logger.info("Check the generated diagnostic_grid_*.png files")
