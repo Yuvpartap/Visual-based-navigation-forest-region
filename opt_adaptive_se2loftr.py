@@ -1,14 +1,19 @@
 """
-Jetson Nano Orin 4GB Optimized LoFTR - Perfect Balance of Speed & Accuracy
+Jetson Nano Orin 4GB Optimized SE2-LoFTR - Rotation Robust Matching
+
+Key Changes:
+1. Replaced LoFTR with SE2-LoFTR for rotation robustness
+2. Maintains all performance optimizations
+3. Uses 8rot.ckpt weights for 8-rotation equivariance
+4. Perfect for drone videos with pan/rotation changes
 
 Optimizations:
 1. CUDA detection and verification
-2. Original adaptive resizing (target_scale_ratio=2.0)
+2. Adaptive resizing (target_scale_ratio=2.0)
 3. Efficient frame saving (every 3rd matched)
-4. No forced downsampling
-5. Aggressive tile cache (128) + moderate feature cache (50)
-6. CUDA optimizations (TF32, cuDNN)
-7. Proper error handling for trajectory map
+4. Aggressive tile cache (128) + moderate feature cache (50)
+5. CUDA optimizations (TF32, cuDNN)
+6. Proper error handling for trajectory map
 """
 
 import os
@@ -26,7 +31,7 @@ from src.tile_loading_utilis import (
     update_center_from_match,
     load_and_stitch_rect,
 )
-from src.dino_loftr_matcher import create_dino_loftr_matcher
+from src.dino_se2loftr_matcher import create_dino_se2loftr_matcher
 from src.video_utils import get_video_info
 
 # Configure logging
@@ -68,9 +73,9 @@ def verify_cuda_setup():
     return cuda_available
 
 
-class JetsonOptimizedLoFTRMatcher:
+class JetsonOptimizedSE2LoFTRMatcher:
     """
-    Jetson Nano Orin optimized wrapper with perfect speed/accuracy balance.
+    Jetson Nano Orin optimized wrapper with rotation robustness via SE2-LoFTR.
     """
     
     def __init__(self, base_matcher, use_mixed_precision=True):
@@ -78,7 +83,7 @@ class JetsonOptimizedLoFTRMatcher:
         self.cuda_available = torch.cuda.is_available()
         self.use_mixed_precision = use_mixed_precision and self.cuda_available
         
-        # Feature cache: 50 items (as requested)
+        # Feature cache: 50 items
         self.tile_feature_cache = {}
         self.max_cache_size = 50
         
@@ -183,17 +188,19 @@ def generate_dynamic_tile_matching_jetson(
     grid_size,
     frame_skip,
     ext=".png",
-    tile_cache_items=256,      # Aggressive: 128
-    min_good_matches=20,       # Standard: 20
+    tile_cache_items=128,
+    min_good_matches=20,
     save_dir="results",
     adaptive_resize=True,
-    cleanup_interval=8,        # Every 8 frames
+    cleanup_interval=8,
     save_every_nth=3,
+    se2loftr_weights="se2-loftr/weights/8rot.ckpt",
 ):
     """
-    Jetson optimized with perfect balance of speed and accuracy.
+    Jetson optimized with SE2-LoFTR for rotation robustness.
     
     Configuration:
+    - SE2-LoFTR: Rotation equivariant matching (8 rotations)
     - Adaptive resize: Original algorithm (scale_ratio=2.0)
     - Tile cache: 128 items (aggressive)
     - Feature cache: 50 items (moderate)
@@ -238,8 +245,10 @@ def generate_dynamic_tile_matching_jetson(
         ransac_threshold = 5.0
     
     logger.info("=" * 70)
-    logger.info("JETSON OPTIMIZED LoFTR - PERFECT BALANCE")
+    logger.info("JETSON OPTIMIZED SE2-LoFTR - ROTATION ROBUST")
     logger.info("=" * 70)
+    logger.info(f"Matcher: SE2-LoFTR (8 rotations - rotation equivariant)")
+    logger.info(f"Weights: {se2loftr_weights}")
     logger.info(f"Grid size: {grid_size}×{grid_size}")
     logger.info(f"Resize_max: {resize_max} (adaptive: {adaptive_resize})")
     logger.info(f"Frame preprocessing: No downsampling (original size)")
@@ -254,13 +263,13 @@ def generate_dynamic_tile_matching_jetson(
     # Verify CUDA
     cuda_ok = verify_cuda_setup()
     
-    # Create matcher
-    base_matcher = create_dino_loftr_matcher(
+    # Create SE2-LoFTR matcher
+    base_matcher = create_dino_se2loftr_matcher(
         use_gpu=cuda_ok, 
-        loftr_model="outdoor", 
+        se2loftr_weights=se2loftr_weights,
         resize_max=resize_max
     )
-    matcher = JetsonOptimizedLoFTRMatcher(base_matcher, use_mixed_precision=cuda_ok)
+    matcher = JetsonOptimizedSE2LoFTRMatcher(base_matcher, use_mixed_precision=cuda_ok)
     
     # Performance tracking
     frame_times = deque(maxlen=10)
@@ -303,7 +312,7 @@ def generate_dynamic_tile_matching_jetson(
             frame_count += 1
             continue
 
-        # Optimized matching
+        # Optimized matching with SE2-LoFTR
         src_pts, dst_pts, confidence, num_matches = matcher.match_with_optimizations(
             frame, stitched, min_matches=min_good_matches,
         )
@@ -345,10 +354,10 @@ def generate_dynamic_tile_matching_jetson(
                 frame_times.append(frame_time)
                 avg_time = np.mean(frame_times)
                 
-                logger.info(f"  ✓ Matches: {num_matches}, Inliers: {num_inliers}")
+                logger.info(f"  ✓ SE2-LoFTR Matches: {num_matches}, Inliers: {num_inliers}")
                 logger.info(f"  → Position: ({center_x}, {center_y})")
                 logger.info(f"  ⚡ Timing: tile={tile_time:.2f}s, match={matcher.timing_stats['matching'][-1]:.2f}s, homo={homo_time:.2f}s")
-                logger.info(f"  ⏱️  Total: {frame_time:.2f}s (avg: {avg_time:.2f}s, {1.0/avg_time:.2f} FPS)")
+                logger.info(f"  ⏱️ Total: {frame_time:.2f}s (avg: {avg_time:.2f}s, {1.0/avg_time:.2f} FPS)")
 
                 # Save visualization every Nth matched frame
                 if matched_frames % save_every_nth == 0:
@@ -383,6 +392,7 @@ def generate_dynamic_tile_matching_jetson(
     logger.info("\n" + "=" * 70)
     logger.info("PERFORMANCE SUMMARY")
     logger.info("=" * 70)
+    logger.info(f"Matcher: SE2-LoFTR (Rotation Robust)")
     logger.info(f"Total frames processed: {processed_frames}")
     logger.info(f"Successful matches: {matched_frames} ({matched_frames/processed_frames*100:.1f}%)")
     logger.info(f"Average time per frame: {matcher.get_average_timing():.2f}s")
@@ -432,7 +442,7 @@ def generate_dynamic_tile_matching_jetson(
                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
                 cv2.circle(temp, pts[-1], 8, (0, 0, 255), -1)
                 
-                traj_path = os.path.join(save_dir, "trajectory_map.png")
+                traj_path = os.path.join(save_dir, "trajectory_map_se2loftr.png")
                 cv2.imwrite(traj_path, temp)
                 logger.info(f"✓ Trajectory map saved: {traj_path}")
                 logger.info(f"  Total trajectory points: {len(centers)}")
@@ -453,14 +463,17 @@ def generate_dynamic_tile_matching_jetson(
 
 
 def main():
-    results_dir = "results_nadir_loftr"
+    results_dir = "results_nadir_se2loftr"
     os.makedirs(results_dir, exist_ok=True)
     input_video_path = r"c:\Binomial Technologies\Non GPS based Navigation\Earth_Studio\France_videos\France_nadir_0d_1km.mp4"
     tiles_dir = r"c:\Binomial Technologies\Non GPS based Navigation\NGBN\Satellite Dataset\france_z19Tiles_osm"
-    initial_tile_x = 265389 
-    initial_tile_y = 180405
+    # Zoom 20 coordinates (2x zoom 19 coordinates)
+    initial_tile_x = 265389  # 265389 * 2
+    initial_tile_y = 180405  # 180405 * 2
     zoom = 19
     grid_size = 7
+    # se2loftr_weights = rf"C:\Binomial Technologies\Non GPS based Navigation\Visual-based-navigation-forest-region\se2_loftr\weights\8rot.ckpt"
+    se2loftr_weights = rf"C:\Binomial Technologies\Non GPS based Navigation\Visual-based-navigation-forest-region\se2_loftr\weights\4rot-big.ckpt"
     
     if not os.path.exists(input_video_path):
         logger.error(f"Video file not found: {input_video_path}")
@@ -468,6 +481,11 @@ def main():
     
     if not os.path.exists(tiles_dir):
         logger.error(f"Tiles directory not found: {tiles_dir}")
+        sys.exit(1)
+    
+    if not os.path.exists(se2loftr_weights):
+        logger.error(f"SE2-LoFTR weights not found: {se2loftr_weights}")
+        logger.error("Please ensure se2-loftr folder with weights/8rot.ckpt exists")
         sys.exit(1)
     
     # Get video info
@@ -490,12 +508,13 @@ def main():
         grid_size=grid_size,
         frame_skip=frame_skip,
         ext=".png",
-        tile_cache_items=128,         # Aggressive tile cache
-        min_good_matches=20,          # Standard threshold
+        tile_cache_items=128,
+        min_good_matches=2,
         save_dir=results_dir,
-        adaptive_resize=True,         # Original algorithm
-        cleanup_interval=8,           # Every 8 frames
-        save_every_nth=1,             # Save every 3rd matched frame
+        adaptive_resize=True,
+        cleanup_interval=8,
+        save_every_nth=1,
+        se2loftr_weights=se2loftr_weights,
     )
     
     total_time = time.time() - start_time
@@ -503,6 +522,7 @@ def main():
     logger.info("\n" + "=" * 70)
     logger.info("✓ PROCESSING COMPLETE!")
     logger.info("=" * 70)
+    logger.info(f"Matcher: SE2-LoFTR (Rotation Equivariant)")
     logger.info(f"Total time: {total_time:.1f}s ({total_time/60:.1f} minutes)")
     logger.info(f"Trajectory points: {len(centers)}")
     if len(centers) > 0:
