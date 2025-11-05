@@ -1,0 +1,121 @@
+# Requirements for Drone Video Processing with Satellite Tile Matching
+# Compatible with: Python 3.8, 3.9, 3.10, 3.11
+# Platform: Ubuntu/Linux and Windows
+
+# ============================================================================
+# CORE DEPENDENCIES
+# ============================================================================
+
+# Deep Learning Framework
+torch>=2.0.0,<2.3.0
+torchvision>=0.15.0,<0.18.0
+
+# Computer Vision
+opencv-python>=4.8.0,<4.10.0
+# Alternative for headless systems: opencv-python-headless>=4.8.0,<4.10.0
+
+# Numerical Computing
+numpy>=1.24.0,<2.0.0
+scipy>=1.10.0,<1.14.0
+
+# ============================================================================
+# FEATURE MATCHING MODELS
+# ============================================================================
+
+# Kornia - For LoFTR matcher
+kornia>=0.7.0,<0.8.0
+kornia-rs>=0.1.0,<0.2.0
+
+# ============================================================================
+# UTILITIES
+# ============================================================================
+
+# Logging (built-in, but ensure compatibility)
+# logging - standard library
+
+# Collections (built-in)
+# collections - standard library
+
+# Threading (built-in)
+# concurrent.futures - standard library
+
+# Typing (built-in for Python 3.8+)
+# typing - standard library
+
+# ============================================================================
+# OPTIONAL BUT RECOMMENDED
+# ============================================================================
+
+# For better performance on NVIDIA GPUs
+# CUDA Toolkit 11.8 or 12.1 (install separately)
+# cuDNN 8.x (install separately)
+
+# For video compression (trajectory video generation)
+# ffmpeg (install separately via system package manager)
+
+# ============================================================================
+# MODEL WEIGHTS (Downloaded automatically via torch.hub)
+# ============================================================================
+
+# DINOv2 models (downloaded from: facebookresearch/dinov2)
+# - dinov2_vitb14 (default)
+# - dinov2_vits14
+# - dinov2_vitl14
+# - dinov2_vitg14
+
+# LoFTR models (included in kornia)
+# - outdoor (default)
+# - indoor
+
+# ============================================================================
+# DEVELOPMENT DEPENDENCIES (Optional)
+# ============================================================================
+
+# For testing
+# pytest>=7.4.0
+# pytest-cov>=4.1.0
+
+# For code formatting
+# black>=23.0.0
+# isort>=5.12.0
+
+# For linting
+# pylint>=2.17.0
+# flake8>=6.0.0
+
+# ============================================================================
+# INSTALLATION NOTES
+# ============================================================================
+
+# Ubuntu/Linux:
+# 1. Install system dependencies:
+#    sudo apt-get update
+#    sudo apt-get install -y python3-pip python3-dev
+#    sudo apt-get install -y libopencv-dev
+#    sudo apt-get install -y ffmpeg  # Optional, for video compression
+#
+# 2. Install CUDA (for GPU support):
+#    Follow: https://developer.nvidia.com/cuda-downloads
+#
+# 3. Install Python packages:
+#    pip install -r requirements.txt
+
+# Windows:
+# 1. Install Python 3.8+ from python.org
+# 2. Install CUDA Toolkit (for GPU support):
+#    Download from: https://developer.nvidia.com/cuda-downloads
+# 3. Install Python packages:
+#    pip install -r requirements.txt
+# 4. Install ffmpeg (optional):
+#    Download from: https://ffmpeg.org/download.html
+#    Add to PATH
+
+# ============================================================================
+# VERIFICATION
+# ============================================================================
+
+# After installation, verify with:
+# python -c "import torch; print(f'PyTorch: {torch.__version__}')"
+# python -c "import cv2; print(f'OpenCV: {cv2.__version__}')"
+# python -c "import kornia; print(f'Kornia: {kornia.__version__}')"
+# python -c "import torch; print(f'CUDA Available: {torch.cuda.is_available()}')"
